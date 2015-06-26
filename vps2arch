@@ -97,8 +97,13 @@ install_packages() {
 }
 
 restore_root_pass() {
-	sed -i '/^root:/d' /etc/shadow
-	cat "/root.$cpu_type/root.passwd" >> /etc/shadow
+	# If the root password is not set, use vps2arch
+	if egrep -q '^root:.?:' "/root.$cpu_type/root.passwd"; then
+		echo "root:vps2arch" | chpasswd
+	else
+		sed -i '/^root:/d' /etc/shadow
+		cat "/root.$cpu_type/root.passwd" >> /etc/shadow
+	fi
 }
 
 cleanup() {
@@ -174,7 +179,7 @@ finalize() {
 		When you are finished with your post-installation, you'll need to reboot the VM the rough way:
 		# sync ; reboot -f
 
-		Then you'll be able to connect to your VM using SSH and to login using your old root password.
+		Then you'll be able to connect to your VM using SSH and to login using your old root password (or "vps2arch" if you didn't have a root password).
 	EOF
 }
 
