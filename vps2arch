@@ -1,0 +1,192 @@
+#!/bin/sh
+
+# Copyright 2015, Timothy Redaelli <tredaelli@archlinux.info>
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 2 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License at <http://www.gnu.org/licenses/> for
+# more details.
+
+: ${ARCH_MIRROR="http://mirror.rackspace.com/archlinux"}
+
+# You don't need to edit anything below this comment
+
+set -e
+
+# Gathering informations about actual environment.
+if which wget >/dev/null 2>&1; then
+	alias download='wget -nv -O-'
+elif which curl >/dev/null 2>&1; then
+	alias download='curl -fL'
+else
+	echo "This script needs curl or wget" >&2
+	exit 2
+fi
+
+cpu_type=$(uname -m)
+findmnt -no SOURCE / | grep -q '^/dev/mapper/' && needs_lvm2=1 || needs_lvm2=0
+
+download_and_extract_bootstrap() {
+	local sha1 filename
+	download "$ARCH_MIRROR"/iso/latest/sha1sums.txt | grep "$cpu_type.tar.gz" > "sha1sums.txt"
+	read -r sha1 filename < "sha1sums.txt"
+	download "$ARCH_MIRROR/iso/latest/$filename" > "$filename"
+	sha1sum -c sha1sums.txt || exit 1
+	tar -xpzf "$filename"
+	rm -f "$filename"
+	cp -R /etc/resolv.conf "/root.$cpu_type/etc"
+	mount --rbind /dev "/root.$cpu_type/dev"
+	mount -t proc proc "/root.$cpu_type/proc"
+	mount -t sysfs sys "/root.$cpu_type/sys"
+	# FIXME support multiple partitions
+	mount --bind / "/root.$cpu_type/mnt"
+	findmnt /boot >/dev/null && mount --bind /boot "/root.$cpu_type/mnt/boot"
+	# Workaround for Debian
+	mkdir -p "/root.$cpu_type/run/shm"
+}
+
+chroot_exec() {
+	chroot "/root.$cpu_type" /bin/bash -c "$*"
+}
+
+configure_chroot() {
+	# Install and initialize haveged if needed
+	if ! pidof haveged >/dev/null; then
+		download "https://www.archlinux.org/packages/extra/$cpu_type/haveged/download/" > "/root.$cpu_type/haveged.pkg.tar.xz"
+		chroot_exec 'pacman --noconfirm -U /haveged.pkg.tar.xz && haveged'
+		rm -f "/root.$cpu_type/haveged.pkg.tar.xz"
+	fi
+	# FIXME support multiple mirrors
+	echo 'Server = '"$ARCH_MIRROR"'/$repo/os/$arch' >> "/root.$cpu_type/etc/pacman.d/mirrorlist"
+	chroot_exec 'pacman-key --init && pacman-key --populate archlinux'
+
+	# Generate fstab
+	chroot_exec 'genfstab /mnt >> /etc/fstab'
+}
+
+save_root_pass() {
+	grep '^root:' /etc/shadow > "/root.$cpu_type/root.passwd"
+	chmod 0600 "/root.$cpu_type/root.passwd"
+}
+
+download_and_install_busybox() {
+	download "https://www.archlinux.org/packages/community/$cpu_type/busybox/download/" > "/root.$cpu_type/busybox.pkg.tar.xz"
+	chroot_exec 'pacman --noconfirm -U /busybox.pkg.tar.xz'
+	rm -f "/root.$cpu_type/busybox.pkg.tar.xz"
+}
+
+delete_all() {
+	# Delete *all* files from /
+	find / \( ! -path '/dev/*' -and ! -path '/proc/*' -and ! -path '/sys/*' -and ! -path '/selinux/*' -and ! -path "/root.$cpu_type/*" \) -delete 2>/dev/null || true
+}
+
+install_packages() {
+	local packages="base grub openssh"
+	if [ $needs_lvm2 -eq 1 ]; then
+		packages="$packages lvm2"
+	fi
+	# You can't use chroot_exec here, because the root filesystem was deleted!
+	"/root.$cpu_type/usr/bin/busybox" chroot "/root.$cpu_type" /usr/bin/pacstrap /mnt $packages
+	cp -L "/root.$cpu_type/etc/resolv.conf" /etc
+}
+
+restore_root_pass() {
+	sed -i '/^root:/d' /etc/shadow
+	cat "/root.$cpu_type/root.passwd" >> /etc/shadow
+}
+
+cleanup() {
+	mv "/root.$cpu_type/etc/fstab" "/etc/fstab"
+	awk "/\/root.$cpu_type/ {print \$2}" /proc/mounts | sort -r | xargs umount -nl
+	rm -rf "/root.$cpu_type/"
+}
+
+configure_bootloader() {
+	local root_dev=$(findmnt -no SOURCE /) root_devs= tmp=
+
+	# If you are still using eth* as interface name, disable "strange" ifnames
+	if grep -q '^\s*eth' /proc/net/dev; then
+		sed -i.bak 's/GRUB_CMDLINE_LINUX_DEFAULT="/&net.ifnames=0 /' /etc/default/grub
+	fi
+
+	if [ $needs_lvm2 -eq 1 ]; then
+		local vg
+		# Some distro doesn't use lvmetad by default
+		sed -i.bak 's/use_lvmetad = 1/use_lvmetad = 0/g' /etc/lvm/lvm.conf
+		vg=$(lvs --noheadings $root_dev | awk '{print $2}')
+		root_dev=$(pvs --noheadings | awk -v vg="$vg" '($2 == vg) { print $1 }')
+	fi
+	for root_dev in $root_dev; do
+		tmp=$(lsblk -npsro NAME "$root_dev" | tail -n1)
+		case " $root_devs " in
+		*" $tmp "*) 	;;
+		*)		root_devs="${root_devs:+$root_devs }$tmp"	;;
+		esac
+	done
+	grub-mkconfig > /boot/grub/grub.cfg
+	for root_dev in $root_devs; do
+		grub-install --target=i386-pc --recheck "$root_dev"
+	done
+
+	if [ $needs_lvm2 -eq 1 ]; then
+		mv /etc/lvm/lvm.conf.bak /etc/lvm/lvm.conf
+		sed -i '/HOOKS/s/block/& lvm2/' /etc/mkinitcpio.conf
+		mkinitcpio -p linux
+	fi
+}
+
+configure_network() {
+	local gateway dev ip
+
+	read -r _ _ gateway _ dev <<-EOF
+		$(ip route show 0.0.0.0/0)
+	EOF
+
+	ip=$(ip addr show dev "$dev" | awk '($1 == "inet") { print $2 }')
+
+	cat > /etc/systemd/network/default.network <<-EOF
+		[Match]
+		Name=$dev
+
+		[Address]
+		Address=$ip
+
+		[Route]
+		Gateway=$gateway
+	EOF
+
+	systemctl enable systemd-networkd sshd
+}
+
+finalize() {
+	cat <<-EOF
+		Hi,
+		your VM has successfully been reimaged with Arch Linux.
+
+		This script configured grub as bootloader and systemd-networkd for networking.
+
+		When you are finished with your post-installation, you'll need to reboot the VM the rough way:
+		# sync ; reboot -f
+
+		Then you'll be able to connect to your VM using SSH and to login using your old root password.
+	EOF
+}
+
+cd /
+download_and_extract_bootstrap
+configure_chroot
+save_root_pass
+download_and_install_busybox
+delete_all
+install_packages
+restore_root_pass
+cleanup
+configure_bootloader
+configure_network
+finalize
