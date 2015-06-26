@@ -69,6 +69,9 @@ on the following _VPS_ providers:
 
 * [CloudAtCost](http://www.cloudatcost.com/)
 
+Theoretically it should also work on **real** computers (running linux), but I think it's not worth it,
+because you can install it in the canonical way.
+
 Contributing
 ------------
 
