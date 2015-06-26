@@ -103,7 +103,7 @@ restore_root_pass() {
 
 cleanup() {
 	mv "/root.$cpu_type/etc/fstab" "/etc/fstab"
-	awk "/\/root.$cpu_type/ {print \$2}" /proc/mounts | sort -r | xargs umount -nl
+	awk "/\/root.$cpu_type/ {print \$2}" /proc/mounts | sort -r | xargs umount -nl || true
 	rm -rf "/root.$cpu_type/"
 }
 
