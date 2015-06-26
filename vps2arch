@@ -40,7 +40,7 @@ download_and_extract_bootstrap() {
 	sha1sum -c sha1sums.txt || exit 1
 	tar -xpzf "$filename"
 	rm -f "$filename"
-	cp -R /etc/resolv.conf "/root.$cpu_type/etc"
+	cp -L /etc/resolv.conf "/root.$cpu_type/etc"
 	mount --rbind /dev "/root.$cpu_type/dev"
 	mount -t proc proc "/root.$cpu_type/proc"
 	mount -t sysfs sys "/root.$cpu_type/sys"
