@@ -112,7 +112,7 @@ configure_bootloader() {
 	findmnt -no SOURCE / | grep -q '^/dev/mapper/' && needs_lvm2=1
 
 	# If you are still using eth* as interface name, disable "strange" ifnames
-	if grep -q '^\s*eth' /proc/net/dev; then
+	if grep -q '^[[:space:]]*eth' /proc/net/dev; then
 		sed -i.bak 's/GRUB_CMDLINE_LINUX_DEFAULT="/&net.ifnames=0 /' /etc/default/grub
 	fi
 
