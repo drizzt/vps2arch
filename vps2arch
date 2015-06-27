@@ -57,7 +57,7 @@ chroot_exec() {
 configure_chroot() {
 	# Install and initialize haveged if needed
 	if ! pidof haveged >/dev/null; then
-		download "https://www.archlinux.org/packages/extra/$cpu_type/haveged/download/" > "/root.$cpu_type/haveged.pkg.tar.xz"
+		chroot_exec "curl -fL https://www.archlinux.org/packages/extra/$cpu_type/haveged/download/ > /haveged.pkg.tar.xz"
 		chroot_exec 'pacman --noconfirm -U /haveged.pkg.tar.xz && haveged'
 		rm -f "/root.$cpu_type/haveged.pkg.tar.xz"
 	fi
@@ -75,7 +75,7 @@ save_root_pass() {
 }
 
 download_and_install_busybox() {
-	download "https://www.archlinux.org/packages/community/$cpu_type/busybox/download/" > "/root.$cpu_type/busybox.pkg.tar.xz"
+	chroot_exec "curl -fL https://www.archlinux.org/packages/community/$cpu_type/busybox/download/ > /busybox.pkg.tar.xz"
 	chroot_exec 'pacman --noconfirm -U /busybox.pkg.tar.xz'
 	rm -f "/root.$cpu_type/busybox.pkg.tar.xz"
 }
