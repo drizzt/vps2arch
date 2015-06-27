@@ -21,7 +21,7 @@ set -e
 
 # Gathering informations about actual environment.
 if which wget >/dev/null 2>&1; then
-	alias download='wget -nv -O-'
+	alias download='wget -O-'
 elif which curl >/dev/null 2>&1; then
 	alias download='curl -fL'
 else
