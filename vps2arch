@@ -88,7 +88,7 @@ delete_all() {
 install_packages() {
 	local packages="base grub openssh"
 	# You can't use chroot_exec here, because the root filesystem was deleted!
-	"/root.$cpu_type/usr/bin/busybox" chroot "/root.$cpu_type" /usr/bin/pacstrap /mnt $packages
+	"/root.$cpu_type/usr/bin/busybox" chroot "/root.$cpu_type" /usr/bin/pacstrap -M /mnt $packages
 	cp -L "/root.$cpu_type/etc/resolv.conf" /etc
 }
 
