@@ -55,14 +55,15 @@ chroot_exec() {
 }
 
 configure_chroot() {
-	# Install and initialize haveged if needed
-	if ! pidof haveged >/dev/null; then
-		chroot_exec "curl -fL https://www.archlinux.org/packages/extra/$cpu_type/haveged/download/ > /haveged.pkg.tar.xz"
-		chroot_exec 'pacman --noconfirm -U /haveged.pkg.tar.xz && haveged'
-		rm -f "/root.$cpu_type/haveged.pkg.tar.xz"
-	fi
 	# FIXME support multiple mirrors
 	echo 'Server = '"$ARCH_MIRROR"'/$repo/os/$arch' >> "/root.$cpu_type/etc/pacman.d/mirrorlist"
+	# Install and initialize haveged if needed
+	if ! pidof haveged >/dev/null; then
+		# Disable signature check, install and launch haveged and re-enable signature checks.
+		sed -i.bak "s/^[[:space:]]*SigLevel[[:space:]]*=.*$/SigLevel = Never/" "/root.$cpu_type/etc/pacman.conf"
+		chroot_exec 'pacman --noconfirm -Sy haveged && haveged'
+		mv "/root.$cpu_type/etc/pacman.conf.bak" "/root.$cpu_type/etc/pacman.conf"
+	fi
 	chroot_exec 'pacman-key --init && pacman-key --populate archlinux'
 
 	# Generate fstab
@@ -75,9 +76,7 @@ save_root_pass() {
 }
 
 download_and_install_busybox() {
-	chroot_exec "curl -fL https://www.archlinux.org/packages/community/$cpu_type/busybox/download/ > /busybox.pkg.tar.xz"
-	chroot_exec 'pacman --noconfirm -U /busybox.pkg.tar.xz'
-	rm -f "/root.$cpu_type/busybox.pkg.tar.xz"
+	chroot_exec 'pacman --noconfirm -Sy busybox'
 }
 
 delete_all() {
