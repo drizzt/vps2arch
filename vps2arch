@@ -120,7 +120,9 @@ cleanup() {
 
 configure_bootloader() {
 	local root_dev=$(findmnt -no SOURCE /) root_devs= tmp= needs_lvm2=0
-	findmnt -no SOURCE / | grep -q '^/dev/mapper/' && needs_lvm2=1
+	case $root_dev in
+	/dev/mapper/*) needs_lvm2=1 ;;
+	esac
 
 	# If you are still using eth* as interface name, disable "strange" ifnames
 	if grep -q '^[[:space:]]*eth' /proc/net/dev; then
