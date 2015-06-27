@@ -60,14 +60,7 @@ Does it really work?
 
 Yes, it does!
 
-For the time being, the script has been tested on the following linux distros:
-
-* CentOS 6 (x86 and x86_64)
-* CentOS 7 (x86 and x86_64)
-
-on the following _VPS_ providers:
-
-* [CloudAtCost](http://www.cloudatcost.com/)
+On the [Tested VPS Providers](https://github.com/drizzt/vps2arch/wiki/Tested-VPS-Providers) wiki page you can find a list of **Tested VPS Providers**.
 
 Theoretically it should also work on **real** computers (running linux), but I think it's not worth it,
 because you can install it in the canonical way.
