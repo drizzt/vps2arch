@@ -30,7 +30,6 @@ else
 fi
 
 cpu_type=$(uname -m)
-findmnt -no SOURCE / | grep -q '^/dev/mapper/' && needs_lvm2=1 || needs_lvm2=0
 
 download_and_extract_bootstrap() {
 	local sha1 filename
@@ -88,9 +87,6 @@ delete_all() {
 
 install_packages() {
 	local packages="base grub openssh"
-	if [ $needs_lvm2 -eq 1 ]; then
-		packages="$packages lvm2"
-	fi
 	# You can't use chroot_exec here, because the root filesystem was deleted!
 	"/root.$cpu_type/usr/bin/busybox" chroot "/root.$cpu_type" /usr/bin/pacstrap /mnt $packages
 	cp -L "/root.$cpu_type/etc/resolv.conf" /etc
@@ -113,7 +109,8 @@ cleanup() {
 }
 
 configure_bootloader() {
-	local root_dev=$(findmnt -no SOURCE /) root_devs= tmp=
+	local root_dev=$(findmnt -no SOURCE /) root_devs= tmp= needs_lvm2=0
+	findmnt -no SOURCE / | grep -q '^/dev/mapper/' && needs_lvm2=1
 
 	# If you are still using eth* as interface name, disable "strange" ifnames
 	if grep -q '^\s*eth' /proc/net/dev; then
