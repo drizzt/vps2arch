@@ -187,6 +187,8 @@ finalize() {
 		# sync ; reboot -f
 
 		Then you'll be able to connect to your VM using SSH and to login using your old root password (or "vps2arch" if you didn't have a root password).
+
+		You'll need to configure your mirrors in order to use pacman, please see https://wiki.archlinux.org/index.php/Mirrors
 	EOF
 }
 
