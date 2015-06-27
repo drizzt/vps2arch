@@ -13,7 +13,7 @@
 # GNU General Public License at <http://www.gnu.org/licenses/> for
 # more details.
 
-: ${ARCH_MIRROR="http://mirror.rackspace.com/archlinux"}
+: ${ARCH_MIRRORS="http://mirror.rackspace.com/archlinux http://dgix.ru/mirrors/archlinux"}
 
 # You don't need to edit anything below this comment
 
@@ -21,9 +21,9 @@ set -e
 
 # Gathering informations about actual environment.
 if which wget >/dev/null 2>&1; then
-	alias download='wget -O-'
+	alias _download='wget -O-'
 elif which curl >/dev/null 2>&1; then
-	alias download='curl -fL'
+	alias _download='curl -fL'
 else
 	echo "This script needs curl or wget" >&2
 	exit 2
@@ -31,11 +31,20 @@ fi
 
 cpu_type=$(uname -m)
 
+download() {
+	local path="$1" x=
+	shift
+	for x in $ARCH_MIRRORS; do
+		_download "$x/$path" && return 0
+	done
+	return 1
+}
+
 download_and_extract_bootstrap() {
 	local sha1 filename
-	download "$ARCH_MIRROR"/iso/latest/sha1sums.txt | grep "$cpu_type.tar.gz" > "sha1sums.txt"
+	download iso/latest/sha1sums.txt | fgrep "$cpu_type.tar.gz" > "sha1sums.txt"
 	read -r sha1 filename < "sha1sums.txt"
-	download "$ARCH_MIRROR/iso/latest/$filename" > "$filename"
+	download "iso/latest/$filename" > "$filename"
 	sha1sum -c sha1sums.txt || exit 1
 	tar -xpzf "$filename"
 	rm -f "$filename"
@@ -55,8 +64,10 @@ chroot_exec() {
 }
 
 configure_chroot() {
-	# FIXME support multiple mirrors
-	echo 'Server = '"$ARCH_MIRROR"'/$repo/os/$arch' >> "/root.$cpu_type/etc/pacman.d/mirrorlist"
+	local m
+	for m in $ARCH_MIRRORS; do
+		echo 'Server = '"$m"'/$repo/os/$arch'
+	done >> "/root.$cpu_type/etc/pacman.d/mirrorlist"
 	# Install and initialize haveged if needed
 	if ! pidof haveged >/dev/null; then
 		# Disable signature check, install and launch haveged and re-enable signature checks.
