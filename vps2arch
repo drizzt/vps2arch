@@ -145,7 +145,7 @@ configure_bootloader() {
 	done
 	grub-mkconfig > /boot/grub/grub.cfg
 	for root_dev in $root_devs; do
-		grub-install --target=i386-pc --recheck "$root_dev"
+		grub-install --target=i386-pc --recheck --force "$root_dev"
 	done
 
 	if [ $needs_lvm2 -eq 1 ]; then
