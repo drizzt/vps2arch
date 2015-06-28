@@ -158,7 +158,7 @@ configure_bootloader() {
 configure_network() {
 	local gateway dev ip
 
-	read -r _ _ gateway _ dev <<-EOF
+	read -r _ _ gateway _ dev _ <<-EOF
 		$(ip route show 0.0.0.0/0)
 	EOF
 
