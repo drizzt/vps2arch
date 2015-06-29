@@ -20,10 +20,10 @@
 set -e
 
 # Gathering informations about actual environment.
-if which wget >/dev/null 2>&1; then
-	alias _download='wget -O-'
-elif which curl >/dev/null 2>&1; then
-	alias _download='curl -fL'
+if command -v wget >/dev/null 2>&1; then
+	_download() { wget -O- "$@" ; }
+elif command -v curl >/dev/null 2>&1; then
+	_download() { curl -fL "$@" ; }
 else
 	echo "This script needs curl or wget" >&2
 	exit 2
