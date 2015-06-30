@@ -13,10 +13,6 @@
 # GNU General Public License at <http://www.gnu.org/licenses/> for
 # more details.
 
-: ${ARCH_MIRRORS="http://mirror.rackspace.com/archlinux http://dgix.ru/mirrors/archlinux"}
-
-# You don't need to edit anything below this comment
-
 set -e
 
 # Gathering informations about actual environment.
@@ -31,10 +27,12 @@ fi
 
 cpu_type=$(uname -m)
 
+is_openvz() { [ -d /proc/vz -a ! -d /proc/bc ]; }
+
 download() {
 	local path="$1" x=
 	shift
-	for x in $ARCH_MIRRORS; do
+	for x in $mirrors; do
 		_download "$x/$path" && return 0
 	done
 	return 1
@@ -65,7 +63,7 @@ chroot_exec() {
 
 configure_chroot() {
 	local m
-	for m in $ARCH_MIRRORS; do
+	for m in $mirrors; do
 		echo 'Server = '"$m"'/$repo/os/$arch'
 	done >> "/root.$cpu_type/etc/pacman.d/mirrorlist"
 	# Install and initialize haveged if needed
@@ -193,6 +191,38 @@ finalize() {
 		You'll need to configure your mirrors in order to use pacman, please see https://wiki.archlinux.org/index.php/Mirrors
 	EOF
 }
+
+mirrors=
+
+while getopts ":m:h" opt; do
+	case $opt in
+	m)
+		mirrors="${mirrors:+$mirrors }$OPTARG"
+		;;
+	h)
+		cat <<-EOF
+			usage: ${0##*/} [options]
+
+			  Options:
+			    -m mirror                    Use the provided mirror (you can specify this option more than once).
+
+			    -h                           Print this help message
+		EOF
+		exit 0
+		;;
+	:)
+		printf "%s: option requires an argument -- '%s'\n" "${0##*/}" "$OPTARG" >&2
+		exit 1
+		;;
+	?)
+		printf "%s: invalid option -- '%s'\n" "${0##*/}" "$OPTARG" >&2
+		exit 1
+		;;
+	esac
+done
+shift $((OPTIND - 1))
+
+: ${mirrors:="http://mirror.rackspace.com/archlinux http://dgix.ru/mirrors/archlinux"}
 
 cd /
 download_and_extract_bootstrap
