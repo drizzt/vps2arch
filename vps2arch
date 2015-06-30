@@ -96,7 +96,7 @@ install_packages() {
 	local packages="base openssh"
 	[ "$bootloader" != "none" ] && packages="$packages $bootloader"
 	# Black magic!
-	"/root.$cpu_type/usr/lib/ld-linux.so."* --library-path "/root.$cpu_type/usr/lib" \
+	"/root.$cpu_type/usr/lib"/ld-*.so --library-path "/root.$cpu_type/usr/lib" \
 		"/root.$cpu_type/usr/bin/chroot" "/root.$cpu_type" /usr/bin/pacstrap -M /mnt $packages
 	cp -L "/root.$cpu_type/etc/resolv.conf" /etc
 }
