@@ -94,7 +94,8 @@ delete_all() {
 }
 
 install_packages() {
-	local packages="base grub openssh"
+	local packages="base openssh"
+	[ "$bootloader" != "none" ] && packages="$packages $bootloader"
 	# You can't use chroot_exec here, because the root filesystem was deleted!
 	"/root.$cpu_type/usr/bin/busybox" chroot "/root.$cpu_type" /usr/bin/pacstrap -M /mnt $packages
 	cp -L "/root.$cpu_type/etc/resolv.conf" /etc
@@ -122,29 +123,38 @@ configure_bootloader() {
 	/dev/mapper/*) needs_lvm2=1 ;;
 	esac
 
-	# If you are still using eth* as interface name, disable "strange" ifnames
-	if grep -q '^[[:space:]]*eth' /proc/net/dev; then
-		sed -i.bak 's/GRUB_CMDLINE_LINUX_DEFAULT="/&net.ifnames=0 /' /etc/default/grub
-	fi
-
 	if [ $needs_lvm2 -eq 1 ]; then
-		local vg
 		# Some distro doesn't use lvmetad by default
 		sed -i.bak 's/use_lvmetad = 1/use_lvmetad = 0/g' /etc/lvm/lvm.conf
-		vg=$(lvs --noheadings $root_dev | awk '{print $2}')
-		root_dev=$(pvs --noheadings | awk -v vg="$vg" '($2 == vg) { print $1 }')
 	fi
-	for root_dev in $root_dev; do
-		tmp=$(lsblk -npsro NAME "$root_dev" | tail -n1)
-		case " $root_devs " in
-		*" $tmp "*) 	;;
-		*)		root_devs="${root_devs:+$root_devs }$tmp"	;;
-		esac
-	done
-	grub-mkconfig > /boot/grub/grub.cfg
-	for root_dev in $root_devs; do
-		grub-install --target=i386-pc --recheck --force "$root_dev"
-	done
+
+	if [ "$bootloader" = "grub" ]; then
+		# If you are still using eth* as interface name, disable "strange" ifnames
+		grep -q '^[[:space:]]*eth' /proc/net/dev && \
+			sed -i.bak 's/GRUB_CMDLINE_LINUX_DEFAULT="/&net.ifnames=0 /' /etc/default/grub
+
+		if [ $needs_lvm2 -eq 1 ]; then
+			local vg
+			vg=$(lvs --noheadings $root_dev | awk '{print $2}')
+			root_dev=$(pvs --noheadings | awk -v vg="$vg" '($2 == vg) { print $1 }')
+		fi
+		for root_dev in $root_dev; do
+			tmp=$(lsblk -npsro NAME "$root_dev" | tail -n1)
+			case " $root_devs " in
+			*" $tmp "*) 	;;
+			*)		root_devs="${root_devs:+$root_devs }$tmp"	;;
+			esac
+		done
+		grub-mkconfig > /boot/grub/grub.cfg
+		for root_dev in $root_devs; do
+			grub-install --target=i386-pc --recheck --force "$root_dev"
+		done
+	elif [ "$bootloader" = "syslinux" ]; then
+		# If you are still using eth* as interface name, disable "strange" ifnames
+		grep -q '^[[:space:]]*eth' /proc/net/dev && tmp="net.ifnames=0"
+		syslinux-install_update -ami
+		sed -i "s;\(^[[:space:]]*APPEND.*\)root=[^[:space:]]*;\1root=$root_dev${tmp:+ $tmp};" /boot/syslinux/syslinux.cfg
+	fi
 
 	if [ $needs_lvm2 -eq 1 ]; then
 		mv /etc/lvm/lvm.conf.bak /etc/lvm/lvm.conf
@@ -181,7 +191,7 @@ finalize() {
 		Hi,
 		your VM has successfully been reimaged with Arch Linux.
 
-		This script configured grub as bootloader and systemd-networkd for networking.
+		This script configured $bootloader as bootloader and systemd-networkd for networking.
 
 		When you are finished with your post-installation, you'll need to reboot the VM the rough way:
 		# sync ; reboot -f
@@ -192,10 +202,18 @@ finalize() {
 	EOF
 }
 
+bootloader=grub
 mirrors=
 
-while getopts ":m:h" opt; do
+while getopts ":b:m:h" opt; do
 	case $opt in
+	b)
+		if ! [ "$OPTARG" = "grub" -o "$OPTARG" = "syslinux" -o "$OPTARG" = "none" ]; then
+			echo "Invalid bootloader specified" >&2
+			exit 1
+		fi
+		bootloader="$OPTARG"
+		;;
 	m)
 		mirrors="${mirrors:+$mirrors }$OPTARG"
 		;;
@@ -204,6 +222,7 @@ while getopts ":m:h" opt; do
 			usage: ${0##*/} [options]
 
 			  Options:
+			    -b (grub|syslinux)           Use the specified bootloader. When this option is omitted, it defaults to grub.
 			    -m mirror                    Use the provided mirror (you can specify this option more than once).
 
 			    -h                           Print this help message
