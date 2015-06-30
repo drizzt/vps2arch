@@ -166,24 +166,44 @@ configure_bootloader() {
 configure_network() {
 	local gateway dev ip
 
-	read -r _ _ gateway _ dev _ <<-EOF
-		$(ip route show 0.0.0.0/0)
+	read -r dev gateway <<-EOF
+		$(awk '$2 == 00000000 { ip = strtonum(sprintf("0x%s", $3));
+			printf ("%s\t%d.%d.%d.%d", $1,
+			rshift(and(ip,0x000000ff),00), rshift(and(ip,0x0000ff00),08),
+			rshift(and(ip,0x00ff0000),16), rshift(and(ip,0xff000000),24)) }' < /proc/net/route)
 	EOF
 
-	ip=$(ip addr show dev "$dev" | awk '($1 == "inet") { print $2 }')
+	set -- $(ip addr show dev "$dev" | awk '($1 == "inet") { print $2 }')
+	ip=$@
 
-	cat > /etc/systemd/network/default.network <<-EOF
-		[Match]
-		Name=$dev
+	if [ "$network" = "systemd-networkd" ]; then
+		cat > /etc/systemd/network/default.network <<-EOF
+			[Match]
+			Name=$dev
 
-		[Address]
-		Address=$ip
+			[Network]
+			Gateway=$gateway
+		EOF
+		for ip in $ip; do
+			echo "Address=$ip"
+		done >> /etc/systemd/network/default.network
+		systemctl enable systemd-networkd
+	elif [ "$network" = "netctl" ]; then
+		cat > /etc/netctl/default <<-EOF
+			Interface=$dev
+			Connection=ethernet
+			IP=static
+			Address=($ip)
+		EOF
+		if [ "$gateway" = "0.0.0.0" ]; then
+			echo 'Routes=("default dev $Interface")'
+		else
+			echo "Gateway=$gateway"
+		fi >> /etc/netctl/default
+		netctl enable default
+	fi
 
-		[Route]
-		Gateway=$gateway
-	EOF
-
-	systemctl enable systemd-networkd sshd
+	systemctl enable sshd
 }
 
 finalize() {
@@ -191,7 +211,7 @@ finalize() {
 		Hi,
 		your VM has successfully been reimaged with Arch Linux.
 
-		This script configured $bootloader as bootloader and systemd-networkd for networking.
+		This script configured $bootloader as bootloader and $network for networking.
 
 		When you are finished with your post-installation, you'll need to reboot the VM the rough way:
 		# sync ; reboot -f
@@ -203,9 +223,10 @@ finalize() {
 }
 
 bootloader=grub
+network=systemd-networkd
 mirrors=
 
-while getopts ":b:m:h" opt; do
+while getopts ":b:m:n:h" opt; do
 	case $opt in
 	b)
 		if ! [ "$OPTARG" = "grub" -o "$OPTARG" = "syslinux" -o "$OPTARG" = "none" ]; then
@@ -217,12 +238,20 @@ while getopts ":b:m:h" opt; do
 	m)
 		mirrors="${mirrors:+$mirrors }$OPTARG"
 		;;
+	n)
+		if ! [ "$OPTARG" = "systemd-networkd" -o "$OPTARG" = "netctl" -o "$OPTARG" = "none" ]; then
+			echo "Invalid networking configuration system specified" >&2
+			exit 1
+		fi
+		network="$OPTARG"
+		;;
 	h)
 		cat <<-EOF
 			usage: ${0##*/} [options]
 
 			  Options:
 			    -b (grub|syslinux)           Use the specified bootloader. When this option is omitted, it defaults to grub.
+			    -n (systemd-networkd|netctl) Use the specified networking configuration system. When this option is omitted, it defaults to systemd-networkd.
 			    -m mirror                    Use the provided mirror (you can specify this option more than once).
 
 			    -h                           Print this help message
