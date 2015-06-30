@@ -55,6 +55,9 @@ download_and_extract_bootstrap() {
 	findmnt /boot >/dev/null && mount --bind /boot "/root.$cpu_type/mnt/boot"
 	# Workaround for Debian
 	mkdir -p "/root.$cpu_type/run/shm"
+	# Workaround for OpenVZ
+	rm -f "/root.$cpu_type/etc/mtab"
+	cp -L /etc/mtab "/root.$cpu_type/etc/mtab"
 }
 
 chroot_exec() {
@@ -67,7 +70,7 @@ configure_chroot() {
 		echo 'Server = '"$m"'/$repo/os/$arch'
 	done >> "/root.$cpu_type/etc/pacman.d/mirrorlist"
 	# Install and initialize haveged if needed
-	if ! pidof haveged >/dev/null; then
+	if ! is_openvz && ! pidof haveged >/dev/null; then
 		# Disable signature check, install and launch haveged and re-enable signature checks.
 		sed -i.bak "s/^[[:space:]]*SigLevel[[:space:]]*=.*$/SigLevel = Never/" "/root.$cpu_type/etc/pacman.conf"
 		chroot_exec 'pacman --noconfirm -Sy haveged && haveged'
@@ -176,6 +179,7 @@ configure_network() {
 	set -- $(ip addr show dev "$dev" | awk '($1 == "inet") { print $2 }')
 	ip=$@
 
+	# FIXME Not supported for "P2P" interfaces, such as venet, yet
 	if [ "$network" = "systemd-networkd" ]; then
 		cat > /etc/systemd/network/default.network <<-EOF
 			[Match]
@@ -207,6 +211,13 @@ configure_network() {
 }
 
 finalize() {
+	# OpenVZ hacks
+	if is_openvz; then
+		# FIXME systemd 220+ doesn't work anymore with OpenVZ!
+		pacman --noconfirm -U "http://seblu.net/a/arm/all/systemd-219-6-$cpu_type.pkg.tar.xz"
+		sed -i 's/^\([[:space:]]*\)#IgnorePkg\([[:space:]]*\)=$/\1IgnorePkg\2= systemd/' /etc/pacman.conf
+	fi
+
 	cat <<-EOF
 		Hi,
 		your VM has successfully been reimaged with Arch Linux.
@@ -255,6 +266,9 @@ while getopts ":b:m:n:h" opt; do
 			    -m mirror                    Use the provided mirror (you can specify this option more than once).
 
 			    -h                           Print this help message
+
+			    Warning:
+			      On OpenVZ containers the bootloader will be not installed and the networking configuration system will be enfoced to netctl.
 		EOF
 		exit 0
 		;;
@@ -271,6 +285,11 @@ done
 shift $((OPTIND - 1))
 
 : ${mirrors:="http://mirror.rackspace.com/archlinux http://dgix.ru/mirrors/archlinux"}
+
+if is_openvz; then
+	bootloader=none
+	network=netctl
+fi
 
 cd /
 download_and_extract_bootstrap
