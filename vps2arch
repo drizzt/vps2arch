@@ -197,7 +197,7 @@ configure_network() {
 			Address=($ip)
 		EOF
 		if [ "$gateway" = "0.0.0.0" ]; then
-			echo 'Routes=("default dev $Interface")'
+			echo 'Routes=(0.0.0.0/0)'
 		else
 			echo "Gateway=$gateway"
 		fi >> /etc/netctl/default
