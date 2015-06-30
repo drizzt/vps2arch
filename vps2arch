@@ -87,10 +87,6 @@ save_root_pass() {
 	chmod 0600 "/root.$cpu_type/root.passwd"
 }
 
-download_and_install_busybox() {
-	chroot_exec 'pacman --noconfirm -Sy busybox'
-}
-
 delete_all() {
 	# Delete *all* files from /
 	find / \( ! -path '/dev/*' -and ! -path '/proc/*' -and ! -path '/sys/*' -and ! -path '/selinux/*' -and ! -path "/root.$cpu_type/*" \) -delete 2>/dev/null || true
@@ -99,8 +95,9 @@ delete_all() {
 install_packages() {
 	local packages="base openssh"
 	[ "$bootloader" != "none" ] && packages="$packages $bootloader"
-	# You can't use chroot_exec here, because the root filesystem was deleted!
-	"/root.$cpu_type/usr/bin/busybox" chroot "/root.$cpu_type" /usr/bin/pacstrap -M /mnt $packages
+	# Black magic!
+	"/root.$cpu_type/usr/lib/ld-linux.so."* --library-path "/root.$cpu_type/usr/lib" \
+		"/root.$cpu_type/usr/bin/chroot" "/root.$cpu_type" /usr/bin/pacstrap -M /mnt $packages
 	cp -L "/root.$cpu_type/etc/resolv.conf" /etc
 }
 
@@ -295,7 +292,6 @@ cd /
 download_and_extract_bootstrap
 configure_chroot
 save_root_pass
-download_and_install_busybox
 delete_all
 install_packages
 restore_root_pass
