@@ -44,14 +44,13 @@ Now, about the **critical** part:
 
 > How can you wipe the system without breaking everything?
 
-It's simple: the script downloads and installs [busybox](http://www.busybox.net/) in the _Bootstrap chroot_.
+It's simple: using `ld.so` from the _Bootstrap chroot_ to launch the `chroot` tool.
 
-After that, it will erase all the system directories except from the _Bootstrap chroot_, `/dev`, `/proc`, `/sys` and the like .
-
-Busybox is statically linked, so it can still be used to chroot to the _Bootstrap chroot_ and to install _Arch Linux_.
+Since it will erase all the system directories except from the _Bootstrap chroot_, `/dev`, `/proc`, `/sys` and the like,
+the only way to launch a command inside the _Bootstrap chroot_ is to using ld.so from the _Bootstrap chroot_ itself.
 
 At this point _Arch Linux_ has been installed, but not configured.
-The script will provide a SSH-able system automagically configuring grub, network and restoring the root password from the original system.
+The script will provide a SSH-able system automagically configuring grub (or syslinux), network and restoring the root password from the original system (or by using `vps2arch` as password if no root password was set).
 
 Once done doing its job, the script will ask you to manually reboot your _VPS_ and voilà, PROFIT!
 
@@ -77,6 +76,7 @@ Or you can just donate me some bucks I'll spend to buy a _VPS_ on your provider 
 Caveats
 -------
 
-[OpenVZ](http://openvz.org/), [Virtuozzo](http://www.odin.com/products/virtuozzo/), [Docker](https://www.docker.com/) or any other similar _VPS_ systems are not supported (for the time being).
+_IPv6_ currently is not supported. If you need to use it, please configure it manually.
 
-In other words, it'll only work on **fully virtualized** systems.
+[OpenVZ](http://openvz.org/) and [Virtuozzo](http://www.odin.com/products/virtuozzo/) are **partially** supported.
+The script works fine, but _systemd_ will be blocked on version 219, because newer systemd versions doesn't work anymore on OpenVZ containers.
