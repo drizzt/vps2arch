@@ -212,9 +212,16 @@ configure_network() {
 finalize() {
 	# OpenVZ hacks
 	if is_openvz; then
-		# FIXME systemd 220+ doesn't work anymore with OpenVZ!
-		pacman --noconfirm -U "http://seblu.net/a/arm/all/systemd-219-6-$cpu_type.pkg.tar.xz"
-		sed -i 's/^\([[:space:]]*\)#IgnorePkg\([[:space:]]*\)=$/\1IgnorePkg\2= systemd/' /etc/pacman.conf
+		local kernelver
+		read -r _ _ kernelver _ < /proc/version
+		if [ "$kernelver" '>' '3.10' ]; then
+			# Virtuozzo 7 works with systemd, but it needs /etc/resolvconf/resolv.conf.d directory
+			mkdir -p /etc/resolvconf/resolv.conf.d
+		elif [ "$kernelver" '<' '2.6.32-042stab111.1' ]; then
+			# systemd 220+ doesn't work with old OpenVZ legacy kernels!
+			pacman --noconfirm -U "http://seblu.net/a/arm/all/systemd-219-6-$cpu_type.pkg.tar.xz"
+			sed -i 's/^\([[:space:]]*\)#IgnorePkg\([[:space:]]*\)=$/\1IgnorePkg\2= systemd/' /etc/pacman.conf
+		fi
 	fi
 
 	cat <<-EOF
