@@ -47,9 +47,17 @@ download_and_extract_bootstrap() {
 	tar -xpzf "$filename"
 	rm -f "$filename"
 	cp -L /etc/resolv.conf "/root.$cpu_type/etc"
-	mount --rbind /dev "/root.$cpu_type/dev"
-	mount -t proc proc "/root.$cpu_type/proc"
-	mount -t sysfs sys "/root.$cpu_type/sys"
+
+	# Mount options taked from arch-chroot script
+	mount -t proc proc -o nosuid,noexec,nodev "/root.$cpu_type/proc"
+	mount -t sysfs sys -o nosuid,noexec,nodev,ro "/root.$cpu_type/sys"
+	mount -t devtmpfs -o mode=0755,nosuid udev "/root.$cpu_type/dev"
+	mkdir -p "/root.$cpu_type/dev/pts" "/root.$cpu_type/dev/shm"
+	mount -t devpts -o mode=0620,gid=5,nosuid,noexec devpts "/root.$cpu_type/dev/pts"
+	mount -t tmpfs -o mode=1777,nosuid,nodev shm "/root.$cpu_type/dev/shm"
+	mount -t tmpfs -o nosuid,nodev,mode=0755 run "/root.$cpu_type/run"
+	mount -t tmpfs -o mode=1777,strictatime,nodev,nosuid tmp "/root.$cpu_type/tmp"
+
 	findmnt -nlo TARGET -t btrfs,ext2,ext3,ext4,f2fs,jfs,nilfs2,reiser4,reiserfs,vfat,xfs,zfs | sort -u | while read -r target; do
 		mount --bind "$target" "/root.$cpu_type/mnt$target"
 	done
