@@ -39,7 +39,7 @@ download() {
 }
 
 download_and_extract_bootstrap() {
-	local sha1 filename
+	local sha1 filename target
 	download iso/latest/sha1sums.txt | fgrep "$cpu_type.tar.gz" > "sha1sums.txt"
 	read -r sha1 filename < "sha1sums.txt"
 	download "iso/latest/$filename" > "$filename"
@@ -50,9 +50,9 @@ download_and_extract_bootstrap() {
 	mount --rbind /dev "/root.$cpu_type/dev"
 	mount -t proc proc "/root.$cpu_type/proc"
 	mount -t sysfs sys "/root.$cpu_type/sys"
-	# FIXME support multiple partitions
-	mount --bind / "/root.$cpu_type/mnt"
-	findmnt /boot >/dev/null && mount --bind /boot "/root.$cpu_type/mnt/boot"
+	findmnt -nlo TARGET -t btrfs,ext2,ext3,ext4,f2fs,jfs,nilfs2,reiser4,reiserfs,vfat,xfs,zfs | sort -u | while read -r target; do
+		mount --bind "$target" "/root.$cpu_type/mnt$target"
+	done
 	# Workaround for Debian
 	mkdir -p "/root.$cpu_type/run/shm"
 	# Workaround for OpenVZ
