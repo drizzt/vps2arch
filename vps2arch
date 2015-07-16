@@ -88,6 +88,11 @@ save_root_pass() {
 }
 
 delete_all() {
+	# Remove immutable flag from any files / directories
+	if command -v chattr >/dev/null 2>&1; then
+		find / -type f \( ! -path '/dev/*' -and ! -path '/proc/*' -and ! -path '/sys/*' -and ! -path '/selinux/*' -and ! -path "/root.$cpu_type/*" \) \
+			-exec chattr -i {} + 2>/dev/null || true
+	fi
 	# Delete *all* files from /
 	find / \( ! -path '/dev/*' -and ! -path '/proc/*' -and ! -path '/sys/*' -and ! -path '/selinux/*' -and ! -path "/root.$cpu_type/*" \) -delete 2>/dev/null || true
 }
