@@ -88,6 +88,11 @@ configure_chroot() {
 
 	# Generate fstab
 	chroot_exec 'genfstab /mnt >> /etc/fstab'
+
+	if is_openvz && [ "$kernelver" '<' '2.6.32-042stab111.1' ]; then
+		# Use my repository for OpenVZ-patched systemd
+		sed -i 's;^#\[testing\]$;[tredaelli-systemd]\nServer = http://pkgbuild.com/~tredaelli/repo/systemd/$arch\n\n&;' "/root.$cpu_type/etc/pacman.conf"
+	fi
 }
 
 save_root_pass() {
@@ -231,9 +236,8 @@ finalize() {
 			# Virtuozzo 7 works with systemd, but it needs /etc/resolvconf/resolv.conf.d directory
 			mkdir -p /etc/resolvconf/resolv.conf.d
 		elif [ "$kernelver" '<' '2.6.32-042stab111.1' ]; then
-			# systemd 220+ doesn't work with old OpenVZ legacy kernels!
-			pacman --noconfirm -U "http://seblu.net/a/arm/all/systemd-219-6-$cpu_type.pkg.tar.xz"
-			sed -i 's/^\([[:space:]]*\)#IgnorePkg\([[:space:]]*\)=$/\1IgnorePkg\2= systemd/' /etc/pacman.conf
+			# Use my repository for OpenVZ-patched systemd
+			sed -i 's;^#\[testing\]$;[tredaelli-systemd]\nServer = http://pkgbuild.com/~tredaelli/repo/systemd/$arch\n\n&;' /etc/pacman.conf
 		fi
 	fi
 

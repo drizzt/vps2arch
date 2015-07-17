@@ -77,6 +77,3 @@ Caveats
 -------
 
 _IPv6_ currently is not supported. If you need to use it, please configure it manually.
-
-[OpenVZ](http://openvz.org/) and [Virtuozzo](http://www.odin.com/products/virtuozzo/) are **partially** supported.
-The script works fine, but _systemd_ will be blocked on version 219, because newer systemd versions doesn't work anymore on OpenVZ containers.
