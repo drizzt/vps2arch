@@ -31,6 +31,13 @@ Download the script on your _VPS_ and execute it with root privileges
 	chmod +x vps2arch
 	./vps2arch
 
+Some _Debian_ _VPS_ images don't have the _CA certificates_ installed, so `wget` will give you the following errors:
+
+	ERROR: The certificate of `raw.githubusercontent.com' is not trusted.
+	ERROR: The certificate of `raw.githubusercontent.com' hasn't got a known issuer.
+
+To fix them just execute `apt-get install ca-certificates` and then re-execute the previous commands.
+
 How does it work?
 -----------------
 
