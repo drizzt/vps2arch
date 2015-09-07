@@ -240,6 +240,9 @@ finalize() {
 		fi
 	fi
 
+	# Enable SSH login for user root (#3)
+	sed -i '/^#PermitRootLogin\s/s/.*/&\nPermitRootLogin yes/' /etc/ssh/sshd_config
+
 	cat <<-EOF
 		Hi,
 		your VM has successfully been reimaged with Arch Linux.
