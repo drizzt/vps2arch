@@ -293,7 +293,7 @@ while getopts ":b:m:n:h" opt; do
 			    -h                           Print this help message
 
 			    Warning:
-			      On OpenVZ containers the bootloader will be not installed and the networking configuration system will be enfoced to netctl.
+			      On OpenVZ containers the bootloader will be not installed and the networking configuration system will be enforced to netctl.
 		EOF
 		exit 0
 		;;
