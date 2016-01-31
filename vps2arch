@@ -110,7 +110,7 @@ delete_all() {
 }
 
 install_packages() {
-	local packages="base openssh"
+	local packages="base openssh reflector"
 	[ "$bootloader" != "none" ] && packages="$packages $bootloader"
 	# XXX Install gptdisk for syslinux. To be removed then FS#45029 will be closed
 	[ "$bootloader" = "syslinux" ] && packages="$packages gptfdisk"
@@ -242,6 +242,14 @@ finalize() {
 
 	# Enable SSH login for user root (#3)
 	sed -i '/^#PermitRootLogin\s/s/.*/&\nPermitRootLogin yes/' /etc/ssh/sshd_config
+	
+	# Run reflector to get updated mirrors
+	
+	cat <<-EOF
+		Reflector: Rating the 35 most recently synced HTTPS servers, sorting them by download speed
+	EOF
+	
+	chroot_exec 'reflector -l 35 -p https --sort rate --save /etc/pacman.d/mirrorlist'
 
 	cat <<-EOF
 		Hi,
@@ -253,8 +261,6 @@ finalize() {
 		# sync ; reboot -f
 
 		Then you'll be able to connect to your VM using SSH and to login using your old root password (or "vps2arch" if you didn't have a root password).
-
-		You'll need to configure your mirrors in order to use pacman, please see https://wiki.archlinux.org/index.php/Mirrors
 	EOF
 }
 
