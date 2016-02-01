@@ -249,7 +249,7 @@ finalize() {
 		Reflector: Rating the 35 most recently synced HTTPS servers, sorting them by download speed
 	EOF
 	
-	chroot_exec 'reflector -l 35 -p https --sort rate --save /etc/pacman.d/mirrorlist'
+	reflector -l 35 -p https --sort rate --save /etc/pacman.d/mirrorlist
 
 	cat <<-EOF
 		Hi,
