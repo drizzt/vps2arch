@@ -246,7 +246,9 @@ finalize() {
 	# Run reflector to get updated mirrors
 	
 	cat <<-EOF
+	
 		Reflector: Rating the 35 most recently synced HTTPS servers, sorting them by download speed
+		
 	EOF
 	
 	reflector -l 35 -p https --sort rate --save /etc/pacman.d/mirrorlist
