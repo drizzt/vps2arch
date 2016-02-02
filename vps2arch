@@ -99,6 +99,10 @@ save_root_pass() {
 	chmod 0600 "/root.$cpu_type/root.passwd"
 }
 
+backup_old_files() {
+	cp -fL /etc/hostname /etc/localtime "/root.$cpu_type/etc/" || true
+}
+
 delete_all() {
 	# Remove immutable flag from any files / directories
 	if command -v chattr >/dev/null 2>&1; then
@@ -320,6 +324,7 @@ cd /
 download_and_extract_bootstrap
 configure_chroot
 save_root_pass
+backup_old_files
 delete_all
 install_packages
 restore_root_pass
