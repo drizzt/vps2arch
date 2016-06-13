@@ -190,10 +190,10 @@ configure_network() {
 	local gateway dev ip
 
 	read -r dev gateway <<-EOF
-		$(awk '$2 == 00000000 { ip = strtonum(sprintf("0x%s", $3));
+		$(awk '$2 == "00000000" { ip = strtonum(sprintf("0x%s", $3));
 			printf ("%s\t%d.%d.%d.%d", $1,
 			rshift(and(ip,0x000000ff),00), rshift(and(ip,0x0000ff00),08),
-			rshift(and(ip,0x00ff0000),16), rshift(and(ip,0xff000000),24)) }' < /proc/net/route)
+			rshift(and(ip,0x00ff0000),16), rshift(and(ip,0xff000000),24)) ; exit }' < /proc/net/route)
 	EOF
 
 	set -- $(ip addr show dev "$dev" | awk '($1 == "inet") { print $2 }')
