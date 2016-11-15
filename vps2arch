@@ -25,6 +25,10 @@ else
 	exit 2
 fi
 
+get_worldwide_mirrors() {
+	_download 'https://www.archlinux.org/mirrorlist/?country=all&protocol=http&protocol=https&ip_version=4' | awk '/^## /{if ($2 == "Worldwide") { flag=1 } else { flag=0 } } /^#Server/ { if (flag) { sub(/\/\$repo.*/, ""); print $3 } }'
+}
+
 cpu_type=$(uname -m)
 
 is_openvz() { [ -d /proc/vz -a ! -d /proc/bc ]; }
@@ -321,7 +325,7 @@ while getopts ":b:m:n:h" opt; do
 done
 shift $((OPTIND - 1))
 
-: ${mirrors:="http://mirror.rackspace.com/archlinux http://dgix.ru/mirrors/archlinux"}
+[ -z "$mirrors" ] && mirrors=$(get_worldwide_mirrors)
 
 if is_openvz; then
 	bootloader=none
