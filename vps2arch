@@ -38,6 +38,17 @@ download() {
 	return 1
 }
 
+get_mirrors() {
+	if [ -n "$mirrors" ]; then
+		local m
+		for m in $mirrors; do
+			echo 'Server = '"$m"'/$repo/os/$arch'
+		done
+	else
+		_download 'https://www.archlinux.org/mirrorlist/?country=all&protocol=http&protocol=https&ip_version=4' | awk '/^## /{if ($2 == "Worldwide") { flag=1 } else { flag=0 } } { if (flag) print }' | sed 's/^#Server/Server/'
+	fi
+}
+
 download_and_extract_bootstrap() {
 	local sha1 filename
 	download iso/latest/sha1sums.txt | fgrep "$cpu_type.tar.gz" > "sha1sums.txt"
@@ -72,10 +83,7 @@ chroot_exec() {
 }
 
 configure_chroot() {
-	local m
-	for m in $mirrors; do
-		echo 'Server = '"$m"'/$repo/os/$arch'
-	done >> "/root.$cpu_type/etc/pacman.d/mirrorlist"
+	get_mirrors >> "/root.$cpu_type/etc/pacman.d/mirrorlist"
 	# Install and initialize haveged if needed
 	if ! is_openvz && ! pidof haveged >/dev/null; then
 		# Disable signature check, install and launch haveged and re-enable signature checks.
@@ -320,8 +328,6 @@ while getopts ":b:m:n:h" opt; do
 	esac
 done
 shift $((OPTIND - 1))
-
-: ${mirrors:="http://mirror.rackspace.com/archlinux http://dgix.ru/mirrors/archlinux"}
 
 if is_openvz; then
 	bootloader=none
