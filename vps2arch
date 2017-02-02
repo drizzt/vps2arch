@@ -32,6 +32,7 @@ get_worldwide_mirrors() {
 cpu_type=$(uname -m)
 
 is_openvz() { [ -d /proc/vz -a ! -d /proc/bc ]; }
+is_lxc() { grep -aqw container=lxc /proc/1/environ ; }
 
 download() {
 	local path="$1" x=
@@ -327,9 +328,12 @@ shift $((OPTIND - 1))
 
 [ -z "$mirrors" ] && mirrors=$(get_worldwide_mirrors)
 
+
 if is_openvz; then
 	bootloader=none
 	network=netctl
+elif is_lxc; then
+	bootloader=none
 fi
 
 cd /
