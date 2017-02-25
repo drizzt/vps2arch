@@ -167,7 +167,7 @@ configure_bootloader() {
 			root_dev=$(pvs --noheadings | awk -v vg="$vg" '($2 == vg) { print $1 }')
 		fi
 		for root_dev in $root_dev; do
-			tmp=$(lsblk -npsro NAME "$root_dev" | tail -n1)
+			tmp=$(lsblk -npsro TYPE,NAME "$root_dev" | awk '($1 == "disk") { print $2}')
 			case " $root_devs " in
 			*" $tmp "*) 	;;
 			*)		root_devs="${root_devs:+$root_devs }$tmp"	;;
