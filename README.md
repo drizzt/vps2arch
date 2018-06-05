@@ -6,7 +6,7 @@ The fastest way to convert a _VPS_ to [Arch Linux](https://www.archlinux.org/)!
 Author
 ------
 
-[Timothy Redaelli](mailto:tredaelli@archlinux.info)
+[Timothy Redaelli](mailto:timothy@fsfe.org)
 
 Description
 -----------
@@ -27,14 +27,14 @@ Download the script on your _VPS_ and execute it with root privileges
 
 **WARNING** The script will **delete** any data in your _VPS_!
 
-	wget http://git.io/vps2arch
+	wget http://tinyurl.com/vps2arch
 	chmod +x vps2arch
 	./vps2arch
 
 Some _Debian_ _VPS_ images don't have the _CA certificates_ installed, so `wget` will give you the following errors:
 
-	ERROR: The certificate of `raw.githubusercontent.com' is not trusted.
-	ERROR: The certificate of `raw.githubusercontent.com' hasn't got a known issuer.
+	ERROR: The certificate of `gitlab.com' is not trusted.
+	ERROR: The certificate of `gitlab.com' hasn't got a known issuer.
 
 To fix them just execute `apt-get install ca-certificates` and then re-execute the previous commands.
 
@@ -66,7 +66,7 @@ Does it really work?
 
 Yes, it does!
 
-On the [Tested VPS Providers](https://github.com/drizzt/vps2arch/wiki/Tested-VPS-Providers) wiki page you can find a list of **Tested VPS Providers**.
+On the [Tested VPS Providers](https://gitlab.com/drizzt/vps2arch/wikis/Tested-VPS-Providers) wiki page you can find a list of **Tested VPS Providers**.
 
 Theoretically it should also work on **real** computers (running linux), but I think it's not worth it,
 because you can install it in the canonical way.
