@@ -30,6 +30,9 @@ Download the script on your _VPS_ and execute it with root privileges
 	wget http://tinyurl.com/vps2arch
 	chmod +x vps2arch
 	./vps2arch
+	
+Pro-tip:  if you want to install a 32-bit Arch Linux on your 64-bit _VPS_,
+replace the previous line with `linux32 ./vps2arch`.
 
 Some _Debian_ _VPS_ images don't have the _CA certificates_ installed, so `wget` will give you the following errors:
 
