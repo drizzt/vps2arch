@@ -1,0 +1,18 @@
+test:
+  image: centos:latest
+
+  retry: 1
+
+  before_script:
+    - yum update -y
+    - yum install -y net-tools libguestfs-tools-c qemu openssh openssh-clients sshpass
+
+  script:
+    - ssh-keygen -q -N '' -f ~/.ssh/id_rsa
+    - printf '%s\n\t' 'Host *' 'ServerAliveInterval 15' 'UserKnownHostsFile /dev/null' 'StrictHostKeyChecking no' 'CheckHostIP no' > ~/.ssh/config
+    - 'LIBGUESTFS_BACKEND=direct virt-builder --arch x86_64 debian-9 -o debian.raw --root-password password:root --ssh-inject root --install wget,ca-certificates --firstboot-command "dpkg-reconfigure openssh-server"'
+    - /usr/libexec/qemu-kvm -m 256 -daemonize -drive file=debian.raw,if=virtio -net nic -net user,hostfwd=tcp::10022-:22 -display none -vga none
+    - sleep 60
+    - 'ssh -p 10022 root@127.0.0.1 "wget http://tinyurl.com/vps2arch && chmod +x vps2arch && ./vps2arch -n netctl -b syslinux && sync ; reboot -f" || true'
+    - sleep 600
+    - sshpass -proot ssh -p 10022 root@127.0.0.1 test -f /etc/arch-release
