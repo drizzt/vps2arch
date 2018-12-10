@@ -174,10 +174,10 @@ configure_bootloader() {
 			*)		root_devs="${root_devs:+$root_devs }$tmp"	;;
 			esac
 		done
-		grub-mkconfig > /boot/grub/grub.cfg
 		for root_dev in $root_devs; do
 			grub-install --target=i386-pc --recheck --force "$root_dev"
 		done
+		grub-mkconfig > /boot/grub/grub.cfg
 	elif [ "$bootloader" = "syslinux" ]; then
 		# If you are still using eth* as interface name, disable "strange" ifnames
 		grep -q '^[[:space:]]*eth' /proc/net/dev && tmp="net.ifnames=0"
