@@ -1,18 +1,59 @@
-test:
-  image: centos:latest
+image: debian:latest
 
-  retry: 1
-
+build:
+  stage: build
   before_script:
-    - yum update -y
-    - yum install -y net-tools libguestfs-tools-c qemu openssh openssh-clients sshpass
-
-  script:
+    - apt-get update -y
+    - DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retires=10 install --no-install-recommends -qq libguestfs-tools busybox linux-image-amd64 gnupg1 openssh-client
     - ssh-keygen -q -N '' -f ~/.ssh/id_rsa
+  script:
+    - 'LIBGUESTFS_BACKEND=direct virt-builder --gpg /usr/bin/gpg1 --arch x86_64 debian-9 -o debian.raw --root-password password:root --ssh-inject root --install wget,ca-certificates --firstboot-command "dpkg-reconfigure openssh-server"'
+  after_script:
+    - mv ~/.ssh/id_rsa id_rsa
+  cache:
+    paths:
+      - debian.raw
+      - id_rsa
+    policy: push
+
+.tests:
+  retry: 1
+  stage: test
+  before_script:
+    - apt-get update -y
+    - DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retires=10 install --no-install-recommends -qq qemu-system-x86 openssh-client sshpass
+    - mkdir ~/.ssh
+    - mv id_rsa ~/.ssh/id_rsa
     - printf '%s\n\t' 'Host *' 'ServerAliveInterval 15' 'UserKnownHostsFile /dev/null' 'StrictHostKeyChecking no' 'CheckHostIP no' > ~/.ssh/config
-    - 'LIBGUESTFS_BACKEND=direct virt-builder --arch x86_64 debian-9 -o debian.raw --root-password password:root --ssh-inject root --install wget,ca-certificates --firstboot-command "dpkg-reconfigure openssh-server"'
-    - /usr/libexec/qemu-kvm -m 256 -daemonize -drive file=debian.raw,if=virtio -net nic -net user,hostfwd=tcp::10022-:22 -display none -vga none
+    - qemu-system-x86_64 -m 256 -daemonize -drive file=debian.raw,if=virtio -net nic -net user,hostfwd=tcp::10022-:22 -display none -vga none
     - sleep 60
-    - 'ssh -p 10022 root@127.0.0.1 "wget http://tinyurl.com/vps2arch && chmod +x vps2arch && ./vps2arch -n netctl -b syslinux && sync ; reboot -f" || true'
+    - scp -P 10022 vps2arch root@127.0.0.1:vps2arch
+    - ssh -p 10022 root@127.0.0.1 "chmod +x vps2arch"
+  dependencies:
+    - build
+  cache:
+    paths:
+      - debian.raw
+      - id_rsa
+    policy: pull
+
+test_default:
+  extends: .tests
+  script:
+    - 'ssh -p 10022 root@127.0.0.1 "./vps2arch && sync ; reboot -f" || true'
+    - sleep 600
+    - sshpass -proot ssh -p 10022 root@127.0.0.1 test -f /etc/arch-release
+
+test_netctl:
+  extends: .tests
+  script:
+    - 'ssh -p 10022 root@127.0.0.1 "./vps2arch -n netctl && sync ; reboot -f" || true'
+    - sleep 600
+    - sshpass -proot ssh -p 10022 root@127.0.0.1 test -f /etc/arch-release
+
+test_syslinux:
+  extends: .tests
+  script:
+    - 'ssh -p 10022 root@127.0.0.1 "./vps2arch -b syslinux && sync ; reboot -f" || true'
     - sleep 600
     - sshpass -proot ssh -p 10022 root@127.0.0.1 test -f /etc/arch-release
