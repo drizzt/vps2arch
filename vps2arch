@@ -162,6 +162,9 @@ configure_bootloader() {
 		grep -q '^[[:space:]]*eth' /proc/net/dev && \
 			sed -i.bak 's/GRUB_CMDLINE_LINUX_DEFAULT="/&net.ifnames=0 /' /etc/default/grub
 
+		# Disable "graphic" terminal output
+		sed -i.bak 's/^#GRUB_TERMINAL_OUTPUT=console/GRUB_TERMINAL_OUTPUT=console/' /etc/default/grub
+
 		if [ $needs_lvm2 -eq 1 ]; then
 			local vg
 			vg=$(lvs --noheadings $root_dev | awk '{print $2}')
