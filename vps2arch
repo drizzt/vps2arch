@@ -120,7 +120,7 @@ delete_all() {
 }
 
 install_packages() {
-	local packages="base openssh reflector"
+	local packages="base linux openssh reflector"
 	[ "$bootloader" != "none" ] && packages="$packages $bootloader"
 	# XXX Install gptdisk for syslinux. To be removed then FS#45029 will be closed
 	[ "$bootloader" = "syslinux" ] && packages="$packages gptfdisk"
