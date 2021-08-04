@@ -137,7 +137,7 @@ install_packages() {
 
 restore_root_pass() {
 	# If the root password is not set, use vps2arch
-	if egrep -q '^root:.?:' "/root.$cpu_type/root.passwd"; then
+	if egrep -q '^root:[^$]' "/root.$cpu_type/root.passwd"; then
 		echo "root:vps2arch" | chpasswd
 	else
 		sed -i '/^root:/d' /etc/shadow
