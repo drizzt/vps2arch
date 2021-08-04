@@ -87,11 +87,11 @@ configure_chroot() {
 	if ! is_openvz && ! pidof haveged >/dev/null; then
 		# Disable signature check, install and launch haveged and re-enable signature checks.
 		sed -i.bak "s/^[[:space:]]*SigLevel[[:space:]]*=.*$/SigLevel = Never/" "/root.$cpu_type/etc/pacman.conf"
-		chroot_exec 'pacman --noconfirm -Sy haveged && haveged'
+		chroot_exec 'pacman --needed --noconfirm -Sy haveged && haveged'
 		mv "/root.$cpu_type/etc/pacman.conf.bak" "/root.$cpu_type/etc/pacman.conf"
 	fi
 	chroot_exec 'pacman-key --init && pacman-key --populate archlinux'
-	chroot_exec 'pacman --noconfirm -Sy awk'
+	chroot_exec 'pacman --needed --noconfirm -Sy awk'
 	# Generate fstab
 	chroot_exec 'genfstab /mnt >> /etc/fstab'
 
