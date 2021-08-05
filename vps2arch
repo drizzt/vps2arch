@@ -26,7 +26,8 @@ else
 fi
 
 get_worldwide_mirrors() {
-	_download 'https://www.archlinux.org/mirrorlist/?country=all&protocol=http&protocol=https&ip_version=4' | awk '/^## /{if ($2 == "Worldwide") { flag=1 } else { flag=0 } } /^#Server/ { if (flag) { sub(/\/\$repo.*/, ""); print $3 } }'
+	echo "https://mirror.pkgbuild.com"
+	_download 'https://www.archlinux.org/mirrorlist/?country=all&protocol=https&ip_version=4' | awk '/^## /{if ($2 == "Worldwide") { flag=1 } else { flag=0 } } /^#Server/ { if (flag) { sub(/\/\$repo.*/, ""); print $3 } }'
 }
 
 cpu_type=$(uname -m)
