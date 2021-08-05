@@ -26,7 +26,6 @@ else
 fi
 
 get_worldwide_mirrors() {
-	echo "http://mirrors.kernel.org/archlinux"
 	_download 'https://www.archlinux.org/mirrorlist/?country=all&protocol=http&protocol=https&ip_version=4' | awk '/^## /{if ($2 == "Worldwide") { flag=1 } else { flag=0 } } /^#Server/ { if (flag) { sub(/\/\$repo.*/, ""); print $3 } }'
 }
 
