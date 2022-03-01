@@ -8,6 +8,7 @@ build:
     - ssh-keygen -q -N '' -f ~/.ssh/id_rsa
   script:
     - curl -fOL https://cdimage.debian.org/cdimage/cloud/buster/latest/debian-10-nocloud-amd64.qcow2
+    - qemu-img resize debian-10-nocloud-amd64.qcow2 +1G
     - 'LIBGUESTFS_BACKEND=direct virt-customize -a debian-10-nocloud-amd64.qcow2 --root-password password:root --ssh-inject root --install wget,ca-certificates --firstboot-command "dpkg-reconfigure -f noninteractive openssh-server"'
   after_script:
     - mv ~/.ssh/id_rsa id_rsa
