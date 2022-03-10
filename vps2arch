@@ -131,7 +131,7 @@ install_packages() {
 		[ "$mountpoint" = "/" -a "$filesystem" = "xfs" ] && packages="$packages xfsprogs"
 	done < /proc/mounts
 	# Black magic!
-	"/root.$cpu_type/usr/lib"/ld-*.so --library-path "/root.$cpu_type/usr/lib" \
+	"/root.$cpu_type/usr/lib"/ld-*.so.2 --library-path "/root.$cpu_type/usr/lib" \
 		"/root.$cpu_type/usr/bin/chroot" "/root.$cpu_type" /usr/bin/pacstrap -M /mnt $packages
 	cp -L "/root.$cpu_type/etc/resolv.conf" /etc
 }
