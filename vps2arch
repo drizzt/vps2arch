@@ -48,7 +48,7 @@ download_and_extract_bootstrap() {
 	download iso/latest/sha1sums.txt | fgrep "$cpu_type.tar.gz" > "sha1sums.txt"
 	read -r sha1 filename < "sha1sums.txt"
 	download "iso/latest/$filename" > "$filename"
-	sha1sum -c sha1sums.txt || exit 1
+	grep -v archlinux-bootstrap-x86_64.tar.gz sha1sums.txt | sha1sum -c || exit 1
 	tar -xpzf "$filename"
 	rm -f "$filename"
 	cp -L /etc/resolv.conf "/root.$cpu_type/etc"
@@ -257,15 +257,8 @@ configure_network() {
 finalize() {
 	# OpenVZ hacks
 	if is_openvz; then
-		local kernelver
-		read -r _ _ kernelver _ < /proc/version
-		if [ "$kernelver" '>' '3.10' ]; then
-			# Virtuozzo 7 works with systemd, but it needs /etc/resolvconf/resolv.conf.d directory
-			mkdir -p /etc/resolvconf/resolv.conf.d
-		elif [ "$kernelver" '<' '2.6.32-042stab111.1' ]; then
-			# Use my repository for OpenVZ-patched systemd
-			sed -i 's;^#\[testing\]$;[tredaelli-systemd]\nServer = http://pkgbuild.com/~tredaelli/repo/systemd/$arch\n\n&;' /etc/pacman.conf
-		fi
+		# Virtuozzo 7 works with systemd, but it needs /etc/resolvconf/resolv.conf.d directory
+		mkdir -p /etc/resolvconf/resolv.conf.d
 	fi
 
 	# Enable SSH login for user root (#3)
