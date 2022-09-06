@@ -114,7 +114,8 @@ delete_all() {
 }
 
 install_packages() {
-	local packages="base linux lvm2 openssh reflector"
+	local packages="base openssh reflector"
+	is_openvz || packages="$packages linux lvm2"
 	[ "$bootloader" != "none" ] && packages="$packages $bootloader"
 	# XXX Install gptdisk for syslinux. To be removed then FS#45029 will be closed
 	[ "$bootloader" = "syslinux" ] && packages="$packages gptfdisk"
