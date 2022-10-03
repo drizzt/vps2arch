@@ -44,11 +44,11 @@ download() {
 }
 
 download_and_extract_bootstrap() {
-	local sha1 filename
-	download iso/latest/sha1sums.txt | fgrep "$cpu_type.tar.gz" > "sha1sums.txt"
-	read -r sha1 filename < "sha1sums.txt"
+	local sha256 filename
+	download iso/latest/sha256sums.txt | fgrep "$cpu_type.tar.gz" > "sha256sums.txt"
+	read -r sha256 filename < "sha256sums.txt"
 	download "iso/latest/$filename" > "$filename"
-	grep -v archlinux-bootstrap-x86_64.tar.gz sha1sums.txt | sha1sum -c || exit 1
+	grep -v archlinux-bootstrap-x86_64.tar.gz sha256sums.txt | sha256sum -c || exit 1
 	tar -xpzf "$filename"
 	rm -f "$filename"
 	cp -L /etc/resolv.conf "/root.$cpu_type/etc"
